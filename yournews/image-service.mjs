@@ -12,12 +12,16 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 
 const API_KEY=process.env.OPENAI_API_KEY||'';
+// User approved a maximum $5 pilot. A separately confirmed project hard limit is
+// required before any billable request; request quotas alone are NOT a dollar cap.
+const HARD_LIMIT_CONFIRMED=process.env.YN_AI_IMAGES_HARD_LIMIT_CONFIRMED==='true';
 const ENABLED=process.env.YN_AI_IMAGES_ENABLED==='true'
   &&process.env.YN_AI_IMAGES_SPEND_APPROVED==='true'
+  &&HARD_LIMIT_CONFIRMED
   &&API_KEY.length>20;
 const MODEL=process.env.YN_AI_IMAGE_MODEL||'gpt-image-2';
-const DAILY_LIMIT=Math.max(0,Math.min(20,Number(process.env.YN_AI_IMAGE_DAILY_LIMIT)||3));
-const MONTHLY_LIMIT=Math.max(0,Math.min(200,Number(process.env.YN_AI_IMAGE_MONTHLY_LIMIT)||40));
+const DAILY_LIMIT=Math.max(0,Math.min(2,Number(process.env.YN_AI_IMAGE_DAILY_LIMIT)||1));
+const MONTHLY_LIMIT=Math.max(0,Math.min(5,Number(process.env.YN_AI_IMAGE_MONTHLY_LIMIT)||3));
 const IMAGE_DIR=process.env.YN_AI_IMAGE_DIR||path.join(tmpdir(),'yournews-editorial-images');
 const MAX_QUEUE=12;
 const MAX_BYTES=12*1024*1024;
@@ -60,6 +64,9 @@ export function imageStatus(){
   enabled:ENABLED,
   configured:Boolean(API_KEY),
   requiresSpendApproval:process.env.YN_AI_IMAGES_SPEND_APPROVED!=='true',
+  hardLimitConfirmed:HARD_LIMIT_CONFIRMED,
+  pilotBudgetUSD:5,
+  caution:'A project-level $5 hard spend limit must be configured separately; API enforcement may lag slightly',
   model:MODEL,
   dailyLimit:DAILY_LIMIT,
   monthlyLimit:MONTHLY_LIMIT,
