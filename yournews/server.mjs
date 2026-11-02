@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {imageStatus,imageMeta,readImage,queueImages} from './image-service.mjs';
+import {findLicensedPhoto,photoStatus} from './licensed-photos.mjs';
 
 const ROOT=path.dirname(fileURLToPath(import.meta.url));
 const PORT=Number(process.env.PORT||3000);
@@ -141,7 +142,7 @@ async function query(country,topic,place='',language='en'){
 function headers(type='application/json; charset=utf-8',maxAge='no-store'){
   return {'content-type':type,'cache-control':maxAge,'x-content-type-options':'nosniff',
   'referrer-policy':'no-referrer','x-frame-options':'DENY','permissions-policy':'camera=(), microphone=(), geolocation=(self)',
-  'content-security-policy':"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"};
+  'content-security-policy':"default-src 'self'; img-src 'self' data: https://upload.wikimedia.org; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"};
 }
 function send(res,status,payload){res.writeHead(status,headers());res.end(JSON.stringify(payload))}
 function validateCountry(raw){const c=String(raw||'WORLD').toUpperCase();return c==='WORLD'||/^[A-Z]{2}$/.test(c)?c:null}
@@ -161,8 +162,21 @@ const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url||'/', 'http://localhost');
   if(req.method!=='GET'){res.writeHead(405,headers());res.end();return}
   if(!allowed(req.socket.remoteAddress||'unknown'))return send(res,429,{error:'Rate limited'});
-  if(url.pathname==='/api/health')return send(res,200,{ok:true,time:new Date().toISOString(),requestCounter,successCounter,lastBackground,cacheEntries:cache.size,sourceChecks:Object.fromEntries([...feedHealth].slice(-30)),feedCountries:HOT.length,backgroundBatchSize:HOT_PER_MINUTE,visualPolicy:'Topic-specific symbolic editorial SVG illustrations; not AI-generated event photos',policy:'Rotating 60-second batch checks; 60-second cache per feed; no guarantee of complete worldwide coverage; free hosting may pause when inactive'});
-  if(url.pathname==='/api/images/status')return send(res,200,imageStatus());
+  if(url.pathname==='/api/health')return send(res,200,{ok:true,time:new Date().toISOString(),requestCounter,successCounter,lastBackground,cacheEntries:cache.size,sourceChecks:Object.fromEntries([...feedHealth].slice(-30)),feedCountries:HOT.length,backgroundBatchSize:HOT_PER_MINUTE,visualPolicy:'Licensed Wikimedia Commons archive photos first when relevant; otherwise labelled AI/editorial illustrations; no unlicensed publisher photos',policy:'Rotating 60-second batch checks; 60-second cache per feed; no guarantee of complete worldwide coverage; free hosting may pause when inactive'});
+  if(url.pathname==='/api/images/status')return send(res,200,{ai:imageStatus(),licensedPhotos:photoStatus()});
+  if(url.pathname==='/api/photo'){
+    const id=String(url.searchParams.get('id')||'');
+    if(!/^[A-Za-z0-9_-]{1,55}$/.test(id))return send(res,400,{error:'Invalid story ID'});
+    // Only photos for stories already indexed by the site. No arbitrary image search proxy.
+    let story=null;
+    for(const entry of cache.values()){
+      story=entry.items.find(x=>x.id===id);
+      if(story)break;
+    }
+    if(!story)return send(res,404,{photo:null,reason:'Story not in current news cache'});
+    const photo=await findLicensedPhoto(story);
+    return send(res,200,{photo,policy:'Commons open-license archive photo, illustrative only; never a verified event photograph'});
+  }
   if(url.pathname.startsWith('/api/illustrations/')){
     const match=url.pathname.match(/^\/api\/illustrations\/([a-f0-9]{40})\.webp$/);
     if(!match)return send(res,404,{error:'Not found'});
