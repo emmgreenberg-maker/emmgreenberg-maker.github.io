@@ -23,7 +23,7 @@ function populateCountries(){const sel=$('country');const frag=document.createDo
 function timeLabel(iso){if(!iso)return '—';try{return new Intl.DateTimeFormat(state.language,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(iso))}catch{return iso}}
 function updateStatus(isLive){const node=$('status');node.classList.toggle('ready',isLive);node.querySelector('span').textContent=isLive?tr('live'):tr('offline')}
 function showWarning(msg){const box=$('warning');box.hidden=!msg;box.textContent=msg||''}
-function makeStory(story){
+function makeStory(story,edition=state.country){
  const card=document.createElement('article');card.className='news';
  const visual=window.YourNewsIllustration?window.YourNewsIllustration(story,state.topic):null;
  if(visual){
@@ -34,7 +34,7 @@ function makeStory(story){
  }
  const body=document.createElement('div');body.className='newsbody';
  const meta=document.createElement('div');meta.className='meta';
- const kind=document.createElement('span');kind.className='newstag';kind.textContent=state.country==='GB'?'UK EDITION':tr('from')+' '+displayCountry(story.country);
+ const kind=document.createElement('span');kind.className='newstag';kind.textContent=edition==='GB'?'UK EDITION':tr('from')+' '+displayCountry(story.country);
  const published=document.createElement('time');published.textContent=timeLabel(story.published);
  meta.append(kind,published);
  const headline=document.createElement('h3');headline.textContent=story.title;
@@ -115,13 +115,19 @@ function initNearMe(){
   $('place').value='';message('Location cleared. Manual mode is active.');loadNews(true);
  });
 }
+
+let worldStories=[];
+async function loadWorld(){try{const r=await fetch('/api/news?country=WORLD&topic=all&language='+encodeURIComponent(state.language),{cache:'no-store'});if(!r.ok)throw Error('World news unavailable');const data=await r.json();worldStories=(data.items||[]).slice(0,12);$('worldgrid').replaceChildren(...worldStories.map(x=>makeStory(x,'WORLD')));$('worldUpdateTime').textContent=data.fetchedAt?'Source check: '+timeLabel(new Date(data.fetchedAt).toISOString()):'';}catch(e){$('worldgrid').textContent='Global feed temporarily unavailable. Please try again.'}}
+function initDrawer(){const drawer=$('settingsDrawer'),backdrop=$('drawerBackdrop'),toggle=$('menuButton');let previous=null;function open(){previous=document.activeElement;drawer.inert=false;drawer.setAttribute('aria-hidden','false');backdrop.hidden=false;document.body.classList.add('drawer-open');toggle.setAttribute('aria-expanded','true');$('menuClose').focus()}function close(){drawer.inert=true;drawer.setAttribute('aria-hidden','true');backdrop.hidden=true;document.body.classList.remove('drawer-open');toggle.setAttribute('aria-expanded','false');previous?.focus?.()}toggle.addEventListener('click',open);$('editionMenuButton').addEventListener('click',open);$('menuClose').addEventListener('click',close);backdrop.addEventListener('click',close);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!drawer.inert)close();if(e.key==='Tab'&&!drawer.inert){const focusable=[...drawer.querySelectorAll('button,input,select,textarea,a[href]')].filter(el=>!el.disabled);const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});return close}
 function setup(){
+ initDrawer();
+ $('worldRefresh').addEventListener('click',()=>loadWorld());
  populateCountries();
  initNearMe();
  $('language').value=state.language in languages?state.language:'en';
  $('topic').value=state.topic;
  $('country').addEventListener('change',e=>setCountry(e.target.value));
- $('language').addEventListener('change',e=>{setLanguage(e.target.value);populateSort();loadNews(true)});
+ $('language').addEventListener('change',e=>{setLanguage(e.target.value);populateSort();loadNews(true);loadWorld()});
  $('topic').addEventListener('change',e=>{state.topic=e.target.value;localStorage.setItem('yn_topic',state.topic);loadNews(true)});
  $('search').addEventListener('input',render);
  $('place').value=state.place;
@@ -139,7 +145,7 @@ function setup(){
  $('clock').textContent=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Europe/London'}).format(new Date());
  document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',b.dataset.country===state.country));
  loadNews(true);
- setInterval(()=>loadNews(true),60000);
+ setInterval(()=>{loadNews(true);loadWorld()},60000);
 }
 function populateSort(){const sel=$('country'),country=state.country;for(const opt of sel.options){if(opt.value!=='WORLD')opt.textContent=(opt.value==='IN'?'🇮🇳 ':opt.value==='BR'?'🇧🇷 ':opt.value==='IE'?'🇮🇪 ':opt.value==='IL'?'🇮🇱 ':'')+displayCountry(opt.value)}sel.value=country}
 setup();
