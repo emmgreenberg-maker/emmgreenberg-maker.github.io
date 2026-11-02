@@ -56,12 +56,12 @@ function render(){const feed=$('newsgrid');feed.replaceChildren();const q=$('sea
 }
 let fetchSequence=0;
 async function loadNews(force=false){
- const seq=++fetchSequence;const key='yn_feed_'+state.country+'_'+state.topic+'_'+state.place;
+ const seq=++fetchSequence;const key='yn_feed_'+state.country+'_'+state.topic+'_'+state.place+'_'+state.language;
  if(!force){try{const saved=JSON.parse(sessionStorage.getItem(key)||'null');if(saved&&Date.now()-saved.fetchedAt<55000){state.stories=saved.items;state.fetchedAt=saved.fetchedAt;render();updateStatus(true);return}}catch{}}
  $('refresh').disabled=true;
  try{
  const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),18000);
- const res=await fetch('/api/news?country='+encodeURIComponent(state.country)+'&topic='+encodeURIComponent(state.topic)+'&place='+encodeURIComponent(state.place),{signal:ctrl.signal,cache:'no-store'});
+ const res=await fetch('/api/news?country='+encodeURIComponent(state.country)+'&topic='+encodeURIComponent(state.topic)+'&place='+encodeURIComponent(state.place)+'&language='+encodeURIComponent(state.language),{signal:ctrl.signal,cache:'no-store'});
  clearTimeout(timeout);if(!res.ok)throw new Error('HTTP '+res.status);
  const data=await res.json();if(seq!==fetchSequence)return;
  state.stories=Array.isArray(data.items)?data.items:[];state.fetchedAt=data.fetchedAt;
