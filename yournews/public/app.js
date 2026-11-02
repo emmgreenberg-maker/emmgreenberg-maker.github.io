@@ -57,8 +57,52 @@ async function loadNews(force=false){
  finally{if(seq===fetchSequence){$('refresh').disabled=false;render()}}
 }
 function setCountry(c){state.country=c;localStorage.setItem('yn_country',c);$('country').value=c;document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',b.dataset.country===c));loadNews(true)}
+
+// Near Me: opt-in one-shot location only. Do not store or track raw GPS coordinates.
+function initNearMe(){
+ const mode=$('nearMode'),manual=$('nearManual'),radius=$('nearRadius'),status=$('nearStatus');
+ let oneShotLocation=null;
+ mode.value='manual';radius.value='2';
+ manual.value=localStorage.getItem('yn_near_manual')||'';
+ function message(m){status.textContent=m}
+ mode.addEventListener('change',()=>{oneShotLocation=null;if(mode.value==='precise'){message('לחץ על אישור מיקום חד־פעמי כדי לבקש הרשאת דפדפן. אין מעקב רציף.')}else message('מצב ידני: הזן עיר או שכונה.');});
+ $('nearLocate').addEventListener('click',()=>{
+  if(mode.value!=='precise'){message('בחר קודם הרשאה מפורשת ברשימה.');return}
+  if(!navigator.geolocation){message('מיקום דפדפן אינו נתמך כאן. אפשר להזין מיקום ידנית.');return}
+  message('מבקש הרשאת מיקום חד־פעמית...');
+  navigator.geolocation.getCurrentPosition(pos=>{
+   // Coarsen to ~1.1km lat and longitude adjusted by latitude; exact GPS never sent.
+   const lat=Math.round(pos.coords.latitude*100)/100;
+   const lonStep=Math.max(.01,.01/Math.max(.25,Math.cos(lat*Math.PI/180)));
+   const lon=Math.round(pos.coords.longitude/lonStep)*lonStep;
+   oneShotLocation={lat,lon};
+   message('מיקום התקבל. ניתן לבקש חדשות באזור הכללי, אך אין אימות למרחק המדויק של האירועים.');
+  },err=>{oneShotLocation=null;message(err.code===1?'הרשאת המיקום נדחתה. אפשר לבחור מיקום ידנית.':'לא ניתן לקבל מיקום כרגע. נסה שוב או בחר ידנית.')},{enableHighAccuracy:false,timeout:12000,maximumAge:0});
+ });
+ $('nearApply').addEventListener('click',()=>{
+  const manualText=manual.value.trim();
+  if(mode.value==='manual'){
+   if(!manualText){message('יש להזין עיר או שכונה.');return}
+   localStorage.setItem('yn_near_manual',manualText);
+   state.place=manualText;
+  }else{
+   if(!oneShotLocation){message('נדרשת הרשאת מיקום חד־פעמית לפני החיפוש.');return}
+   state.place=oneShotLocation.lat.toFixed(2)+', '+oneShotLocation.lon.toFixed(2);
+  }
+  localStorage.setItem('yn_place',state.place);
+  $('place').value=state.place;
+  message('מחפש דיווחים המזכירים את האזור שנבחר. רדיוס '+radius.value+' ק״מ הוא העדפה בלבד, לא סינון מאומת.');
+  loadNews(true);$('stories').scrollIntoView({behavior:'smooth'});
+ });
+ $('nearClear').addEventListener('click',()=>{
+  oneShotLocation=null;manual.value='';mode.value='manual';state.place='';
+  localStorage.removeItem('yn_place');localStorage.removeItem('yn_near_manual');
+  $('place').value='';message('המיקום נמחק. מצב ידני פעיל.');loadNews(true);
+ });
+}
 function setup(){
  populateCountries();
+ initNearMe();
  $('language').value=state.language in languages?state.language:'en';
  $('topic').value=state.topic;
  $('country').addEventListener('change',e=>setCountry(e.target.value));
