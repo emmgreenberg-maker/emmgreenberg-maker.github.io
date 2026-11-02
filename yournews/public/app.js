@@ -31,6 +31,20 @@ function makeStory(story,edition=state.country){
   const image=document.createElement('img');image.src=visual.url;image.alt=visual.alt;image.loading='lazy';image.decoding='async';image.width=800;image.height=450;
   const figcaption=document.createElement('figcaption');figcaption.textContent='Editorial illustration · Not a photograph of this event';
   figure.append(image,figcaption);card.append(figure);
+  // Licensed archive photos take precedence when metadata supports reuse and relevance.
+  if(story.id){
+   fetch('/api/photo?id='+encodeURIComponent(story.id)).then(r=>r.ok?r.json():null).then(result=>{
+    const p=result?.photo;
+    if(!p||!/^https:\/\/upload\.wikimedia\.org\//.test(p.url))return;
+    const licensed=new Image();licensed.referrerPolicy='no-referrer';
+    licensed.onload=()=>{
+      image.src=p.url;image.alt=p.alt;figcaption.textContent=p.caption;
+      const credit=document.createElement('a');credit.href=p.sourceURL;credit.target='_blank';credit.rel='noopener noreferrer';credit.className='photo-credit';credit.textContent=p.attribution;
+      figure.append(credit);
+    };
+    licensed.src=p.url;
+   }).catch(()=>{});
+  }
   // Replace the contextual vector with a source-grounded AI illustration only if generated.
   if(story.imageId&&story.imageUrl){
    const ai=new Image();ai.onload=()=>{image.src=ai.src;image.alt='AI-generated editorial illustration of the reported subject; not a documentary photograph';figcaption.textContent='AI-generated editorial illustration · Not a photograph of this event';};
