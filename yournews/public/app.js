@@ -3,13 +3,21 @@ const CODES='AF AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ B
 const languages={he:'עברית',en:'English',pt:'Português',hi:'हिन्दी',ga:'Gaeilge',ar:'العربية',es:'Español',fr:'Français',de:'Deutsch',ru:'Русский',zh:'中文',ja:'日本語'};
 const dictionary={
  he:{checking:'בודק עדכונים...',live:'מקורות חדשות זמינים',offline:'תקלה בחיבור לחדשות',global:'מהדורה עולמית',motto:'חדשות מעניינות. דיווח אחראי.',nextgen:'A BETTER WAY TO STAY INFORMED',heroTitle:'העולם שלך.\nהחדשות שלך.',heroDesc:'בחר מדינה, שפה ותחומי עניין. קבל כותרות ממקורות עיתונאיים, עם שליטה בחוויית הקריאה שלך.',artNote:'איור דיגיטלי להמחשה • לא תיעוד חדשותי',startReading:'לקריאת החדשות ←',setPrefs:'התאמה אישית ⚙',yourEdition:'YOUR EDITION',country:'מדינה / אזור',language:'שפת הממשק',topic:'נושא',search:'חיפוש בכותרות',searchPlaceholder:'מה מעניין אותך?',allTopics:'כל הנושאים',world:'חדשות העולם',business:'עסקים וכלכלה',technology:'טכנולוגיה',science:'מדע',health:'בריאות',sports:'ספורט',latest:'THE LATEST',refresh:'רענון',sourcelabel:'המקור המקורי מצוין בכל ידיעה. אין העתקה של כתבות מלאות.',community:'COMMUNITY JOURNALISM',storyTitle:'יש לך ידיעה לספר?',storyDesc:'העבר דיווח לעורך. בשלב זה אפשר להכין טיוטה במכשיר; פרסום ציבורי כפוף לאימות ולמערכת עריכה שטרם חוברה.',shareStory:'הכן ידיעה ↗',footer:'עיתונות מכובדת · בחירה אישית · מקורות שקופים',prefsTitle:'העדפות אישיות',prefsIntro:'ההעדפות נשמרות בדפדפן שלך בלבד. אין מעקב שרת אחר היסטוריית הקריאה.',history:'שמור מקומית ידיעות שקראתי לצורך התאמה',styleLabel:'סגנון התוכן',save:'שמירה',deleteData:'מחק את המידע המקומי שלי',reportTitle:'הכן ידיעה',reportIntro:'טיוטות אינן נשלחות לשרת או מתפרסמות. אין לפרסם פרטים אישיים של אחרים ללא רשות.',headline:'כותרת',details:'פרטי הידיעה',sourceUrl:'קישור למקור (רשות)',saveDraft:'שמור טיוטה במכשיר',source:'מקור',readOriginal:'לקריאת הידיעה במקור ↗',saving:'נשמר במכשיר',noNews:'אין חדשות זמינות כעת עבור בחירה זו. נסה מדינה או נושא אחר.',failed:'חיבור מקור החדשות לא הצליח. נסה שוב בהמשך.',updating:'מתעדכן כל דקה כל עוד האתר פתוח',from:'חדשות',saved:'שמור',unsave:'הסר סימון',savedMsg:'נשמרו ההעדפות',localDraft:'הטיוטה נשמרה בדפדפן ולא פורסמה',draftRequired:'יש למלא כותרת ופרטי ידיעה',preferredNote:'עדיפות הסגנון נשמרת, אך סינון תוכן קהילתי עדיין אינו פעיל.'},
- en:{checking:'Checking sources...',live:'News sources available',offline:'News feed unavailable',global:'GLOBAL EDITION',motto:'Meaningful stories. Responsible reporting.',nextgen:'A BETTER WAY TO STAY INFORMED',heroTitle:'Your world.\nYour news.',heroDesc:'Choose a country, language and topics. Read headlines from credited publishers, and take control of your news experience.',artNote:'Digital illustration • not documentary footage',startReading:'Start reading →',setPrefs:'Personalize ⚙',yourEdition:'YOUR EDITION',country:'Country / region',language:'Interface language',topic:'Topic',search:'Search headlines',searchPlaceholder:'What interests you?',allTopics:'All topics',world:'World news',business:'Business',technology:'Technology',science:'Science',health:'Health',sports:'Sports',latest:'THE LATEST',refresh:'Refresh',sourcelabel:'Original sources are linked. Full articles are not republished.',community:'COMMUNITY JOURNALISM',storyTitle:'Have a story to share?',storyDesc:'Prepare a story tip on this device. Public submissions and editorial verification are not connected yet.',shareStory:'Prepare a tip ↗',footer:'Dignified reporting · Personal choice · Transparent sources',prefsTitle:'Your preferences',prefsIntro:'Your settings stay in this browser. No server-side reading history tracking.',history:'Store reading history locally for personalization',styleLabel:'Content style',save:'Save',deleteData:'Delete my local data',reportTitle:'Prepare a news tip',reportIntro:'Drafts stay on your device and are not published. Do not disclose other people’s personal information without permission.',headline:'Headline',details:'Story details',sourceUrl:'Source link (optional)',saveDraft:'Save draft locally',source:'Source',readOriginal:'Read at source ↗',saving:'Saved locally',noNews:'No stories are available for this selection right now. Try another topic or country.',failed:'Could not connect to the news provider. Try again later.',updating:'Refreshing each minute while the page is open',from:'News from',saved:'Bookmark',unsave:'Remove bookmark',savedMsg:'Preferences saved',localDraft:'Draft saved in your browser. It was not published.',draftRequired:'Please enter a headline and details.',preferredNote:'Your chosen style is saved; community-specific editorial filtering is not active yet.'},
+ en:{checking:'Checking sources...',live:'News sources available',offline:'News feed unavailable',global:'BRITISH EDITION · GLOBAL OUTLOOK',motto:'A British perspective. A global outlook.',nextgen:'A BETTER WAY TO STAY INFORMED',heroTitle:'Your world.\nYour news.',heroDesc:'Start with the United Kingdom. Explore the world. Discover sourced headlines, local perspectives and illustrated coverage, refreshed throughout the day.',artNote:'Editorial artwork · not an event photograph',startReading:'Explore the headlines →',setPrefs:'Personalize ⚙',yourEdition:'YOUR EDITION',country:'Country / region',language:'Interface language',topic:'Topic',search:'Search headlines',searchPlaceholder:'What interests you?',allTopics:'All topics',world:'World news',business:'Business',technology:'Technology',science:'Science',health:'Health',sports:'Sports',latest:'THE LATEST',refresh:'Refresh',sourcelabel:'Original sources are linked. Full articles are not republished.',community:'COMMUNITY JOURNALISM',storyTitle:'Have a story to share?',storyDesc:'Prepare a story tip on this device. Public submissions and editorial verification are not connected yet.',shareStory:'Prepare a tip ↗',footer:'Dignified reporting · Personal choice · Transparent sources',prefsTitle:'Your preferences',prefsIntro:'Your settings stay in this browser. No server-side reading history tracking.',history:'Store reading history locally for personalization',styleLabel:'Content style',save:'Save',deleteData:'Delete my local data',reportTitle:'Prepare a news tip',reportIntro:'Drafts stay on your device and are not published. Do not disclose other people’s personal information without permission.',headline:'Headline',details:'Story details',sourceUrl:'Source link (optional)',saveDraft:'Save draft locally',source:'Publisher',readOriginal:'Read original report ↗',saving:'Saved locally',noNews:'No stories are available for this selection right now. Try another topic or country.',failed:'Could not connect to the news provider. Try again later.',updating:'Checking for new headlines every minute · Sourced reports',from:'News from',saved:'Bookmark',unsave:'Remove bookmark',savedMsg:'Preferences saved',localDraft:'Draft saved in your browser. It was not published.',draftRequired:'Please enter a headline and details.',preferredNote:'Your chosen style is saved; community-specific editorial filtering is not active yet.'},
  pt:{heroTitle:'Seu mundo.\nSuas notícias.',heroDesc:'Escolha país, idioma e assuntos. Leia manchetes de fontes identificadas.',country:'País / região',language:'Idioma da interface',topic:'Assunto',search:'Buscar manchetes',latest:'ÚLTIMAS NOTÍCIAS',refresh:'Atualizar',startReading:'Ler notícias →',from:'Notícias de',readOriginal:'Leia na fonte ↗',noNews:'Nenhuma notícia disponível para esta seleção.',failed:'Não foi possível carregar as notícias.'},
  hi:{heroTitle:'आपकी दुनिया।\nआपकी खबरें।',heroDesc:'देश, भाषा और विषय चुनें। विश्वसनीय स्रोतों से शीर्षक पढ़ें।',country:'देश / क्षेत्र',language:'भाषा',topic:'विषय',search:'समाचार खोजें',latest:'ताज़ा खबरें',refresh:'रिफ्रेश',startReading:'खबरें पढ़ें →',from:'समाचार',readOriginal:'मूल स्रोत पढ़ें ↗',noNews:'इस चयन के लिए अभी खबरें नहीं हैं।'},
  ga:{heroTitle:'Do dhomhan.\nDo nuacht.',heroDesc:'Roghnaigh tír, teanga agus ábhair. Léigh ceannlínte ó fhoinsí ainmnithe.',country:'Tír / réigiún',language:'Teanga',topic:'Ábhar',search:'Cuardaigh ceannlínte',latest:'AN NUACHT IS DÉANAÍ',refresh:'Athnuaigh',startReading:'Léigh an nuacht →',from:'Nuacht ó',readOriginal:'Léigh ag an bhfoinse ↗',noNews:'Níl nuacht ar fáil don rogha seo faoi láthair.'}};
-const state={country:localStorage.getItem('yn_country')||'WORLD',language:localStorage.getItem('yn_language')||'he',topic:localStorage.getItem('yn_topic')||'all',place:localStorage.getItem('yn_place')||'',stories:[],notice:'',fetchedAt:null};
+// A one-time edition migration makes the first impression British/English, without preventing later changes.
+if(localStorage.getItem('yn_edition')!=='british-v1'){
+ localStorage.setItem('yn_edition','british-v1');
+ localStorage.setItem('yn_country','GB');
+ localStorage.setItem('yn_language','en');
+ localStorage.removeItem('yn_place');
+ sessionStorage.clear();
+}
+const state={country:localStorage.getItem('yn_country')||'GB',language:localStorage.getItem('yn_language')||'en',topic:localStorage.getItem('yn_topic')||'all',place:localStorage.getItem('yn_place')||'',stories:[],notice:'',fetchedAt:null};
 function tr(key){return dictionary[state.language]?.[key]||dictionary.en[key]||key}
-function setLanguage(l){state.language=l;document.documentElement.lang=l;document.documentElement.dir=['he','ar'].includes(l)?'rtl':'ltr';localStorage.setItem('yn_language',l);document.querySelectorAll('[data-i18n]').forEach(el=>{const v=tr(el.dataset.i18n);el.textContent=v; if(el.dataset.i18n==='heroTitle')el.style.whiteSpace='pre-line'});$('search').placeholder=tr('searchPlaceholder');render();updateStatus(Boolean(state.stories.length))}
+function setLanguage(l){state.language=l;document.documentElement.lang=l==='en'?'en-GB':l;document.documentElement.dir=['he','ar'].includes(l)?'rtl':'ltr';localStorage.setItem('yn_language',l);document.querySelectorAll('[data-i18n]').forEach(el=>{const v=tr(el.dataset.i18n);el.textContent=v; if(el.dataset.i18n==='heroTitle')el.style.whiteSpace='pre-line'});$('search').placeholder=tr('searchPlaceholder');render();updateStatus(Boolean(state.stories.length))}
 function displayCountry(code){if(code==='WORLD')return state.language==='he'?'העולם':'World';try{return new Intl.DisplayNames([state.language,'en'],{type:'region'}).of(code)||code}catch{return code}}
 function populateCountries(){const sel=$('country');const frag=document.createDocumentFragment();for(const c of CODES){const opt=document.createElement('option');opt.value=c;opt.textContent=(c==='IN'?'🇮🇳 ':c==='BR'?'🇧🇷 ':c==='IE'?'🇮🇪 ':c==='IL'?'🇮🇱 ':'')+displayCountry(c);frag.appendChild(opt)}sel.appendChild(frag);sel.value=state.country; if(sel.value!==state.country){state.country='WORLD';sel.value='WORLD'}}
 function timeLabel(iso){if(!iso)return '—';try{return new Intl.DateTimeFormat(state.language,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(iso))}catch{return iso}}
@@ -17,9 +25,16 @@ function updateStatus(isLive){const node=$('status');node.classList.toggle('read
 function showWarning(msg){const box=$('warning');box.hidden=!msg;box.textContent=msg||''}
 function makeStory(story){
  const card=document.createElement('article');card.className='news';
+ const visual=window.YourNewsIllustration?window.YourNewsIllustration(story,state.topic):null;
+ if(visual){
+  const figure=document.createElement('figure');figure.className='newsvisual';
+  const image=document.createElement('img');image.src=visual.url;image.alt=visual.alt;image.loading='lazy';image.decoding='async';image.width=800;image.height=450;
+  const figcaption=document.createElement('figcaption');figcaption.textContent='Editorial illustration · Not a photograph of this event';
+  figure.append(image,figcaption);card.append(figure);
+ }
  const body=document.createElement('div');body.className='newsbody';
  const meta=document.createElement('div');meta.className='meta';
- const kind=document.createElement('span');kind.className='newstag';kind.textContent=tr('from')+' '+displayCountry(story.country);
+ const kind=document.createElement('span');kind.className='newstag';kind.textContent=state.country==='GB'?'UK EDITION':tr('from')+' '+displayCountry(story.country);
  const published=document.createElement('time');published.textContent=timeLabel(story.published);
  meta.append(kind,published);
  const headline=document.createElement('h3');headline.textContent=story.title;
@@ -34,7 +49,7 @@ function makeStory(story){
 }
 function loadArray(k){try{const r=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(r)?r:[]}catch{return []}}
 function recordRead(story){if(localStorage.getItem('yn_track')!=='yes')return;const history=loadArray('yn_history');history.push({id:story.id,country:story.country,at:new Date().toISOString()});localStorage.setItem('yn_history',JSON.stringify(history.slice(-120)))}
-function render(){const feed=$('newsgrid');feed.replaceChildren();const q=$('search').value.trim().toLocaleLowerCase();const stories=state.stories.filter(s=>(s.title+' '+s.source).toLocaleLowerCase().includes(q));const title=$('feedtitle');title.textContent=state.country==='WORLD'?(state.language==='he'?'חדשות מכל העולם':tr('from')+' the world'):tr('from')+' '+displayCountry(state.country);
+function render(){const feed=$('newsgrid');feed.replaceChildren();const q=$('search').value.trim().toLocaleLowerCase();const stories=state.stories.filter(s=>(s.title+' '+s.source).toLocaleLowerCase().includes(q));const title=$('feedtitle');title.textContent=state.country==='WORLD'?(state.language==='he'?'חדשות מכל העולם':'Around the world'):(state.country==='GB'&&state.language==='en'?'Latest from Britain':tr('from')+' '+displayCountry(state.country));
  $('feedsubtitle').textContent=tr('updating');$('updateTime').textContent=state.fetchedAt?'Source check: '+timeLabel(new Date(state.fetchedAt).toISOString()):'';
  if(!stories.length){const node=document.createElement('div');node.className='loading';node.textContent=tr('noNews');feed.append(node);return}
  for(const story of stories)feed.append(makeStory(story));
@@ -65,39 +80,39 @@ function initNearMe(){
  mode.value='manual';radius.value='2';
  manual.value=localStorage.getItem('yn_near_manual')||'';
  function message(m){status.textContent=m}
- mode.addEventListener('change',()=>{oneShotLocation=null;if(mode.value==='precise'){message('לחץ על אישור מיקום חד־פעמי כדי לבקש הרשאת דפדפן. אין מעקב רציף.')}else message('מצב ידני: הזן עיר או שכונה.');});
+ mode.addEventListener('change',()=>{oneShotLocation=null;if(mode.value==='precise'){message('Select Allow location once to request browser permission. There is no continuous tracking.')}else message('Manual mode: enter a town or neighbourhood.');});
  $('nearLocate').addEventListener('click',()=>{
-  if(mode.value!=='precise'){message('בחר קודם הרשאה מפורשת ברשימה.');return}
-  if(!navigator.geolocation){message('מיקום דפדפן אינו נתמך כאן. אפשר להזין מיקום ידנית.');return}
-  message('מבקש הרשאת מיקום חד־פעמית...');
+  if(mode.value!=='precise'){message('Select one-off location permission first.');return}
+  if(!navigator.geolocation){message('Browser location is unavailable. Please enter a town manually.');return}
+  message('Requesting one-off location permission…');
   navigator.geolocation.getCurrentPosition(pos=>{
    // Coarsen to ~1.1km lat and longitude adjusted by latitude; exact GPS never sent.
    const lat=Math.round(pos.coords.latitude*100)/100;
    const lonStep=Math.max(.01,.01/Math.max(.25,Math.cos(lat*Math.PI/180)));
    const lon=Math.round(pos.coords.longitude/lonStep)*lonStep;
    oneShotLocation={lat,lon};
-   message('מיקום התקבל. ניתן לבקש חדשות באזור הכללי, אך אין אימות למרחק המדויק של האירועים.');
-  },err=>{oneShotLocation=null;message(err.code===1?'הרשאת המיקום נדחתה. אפשר לבחור מיקום ידנית.':'לא ניתן לקבל מיקום כרגע. נסה שוב או בחר ידנית.')},{enableHighAccuracy:false,timeout:12000,maximumAge:0});
+   message('Approximate location received. Nearby results are indicative, not verified within the selected radius.');
+  },err=>{oneShotLocation=null;message(err.code===1?'Location permission denied. Manual selection is available.':'Could not obtain location. Try again or enter a town.')},{enableHighAccuracy:false,timeout:12000,maximumAge:0});
  });
  $('nearApply').addEventListener('click',()=>{
   const manualText=manual.value.trim();
   if(mode.value==='manual'){
-   if(!manualText){message('יש להזין עיר או שכונה.');return}
+   if(!manualText){message('Please enter a town or neighbourhood.');return}
    localStorage.setItem('yn_near_manual',manualText);
    state.place=manualText;
   }else{
-   if(!oneShotLocation){message('נדרשת הרשאת מיקום חד־פעמית לפני החיפוש.');return}
+   if(!oneShotLocation){message('Allow one-off location access before searching.');return}
    state.place=oneShotLocation.lat.toFixed(2)+', '+oneShotLocation.lon.toFixed(2);
   }
   localStorage.setItem('yn_place',state.place);
   $('place').value=state.place;
-  message('מחפש דיווחים המזכירים את האזור שנבחר. רדיוס '+radius.value+' ק״מ הוא העדפה בלבד, לא סינון מאומת.');
+  message('Searching for reports mentioning this area. The '+radius.value+' km preference is not a verified distance filter.');
   loadNews(true);$('stories').scrollIntoView({behavior:'smooth'});
  });
  $('nearClear').addEventListener('click',()=>{
   oneShotLocation=null;manual.value='';mode.value='manual';state.place='';
   localStorage.removeItem('yn_place');localStorage.removeItem('yn_near_manual');
-  $('place').value='';message('המיקום נמחק. מצב ידני פעיל.');loadNews(true);
+  $('place').value='';message('Location cleared. Manual mode is active.');loadNews(true);
  });
 }
 function setup(){
@@ -121,7 +136,7 @@ function setup(){
  $('theme').onclick=()=>{document.body.classList.toggle('dark');localStorage.setItem('yn_dark',document.body.classList.contains('dark')?'yes':'no')};
  if(localStorage.getItem('yn_dark')==='yes')document.body.classList.add('dark');
  setLanguage($('language').value);
- $('clock').textContent=new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date());
+ $('clock').textContent=new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'Europe/London'}).format(new Date());
  document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',b.dataset.country===state.country));
  loadNews(true);
  setInterval(()=>loadNews(true),60000);
