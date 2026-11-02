@@ -7,7 +7,8 @@ const ROOT=path.dirname(fileURLToPath(import.meta.url));
 const PORT=Number(process.env.PORT||3000);
 const MAX_ITEMS=30, TTL=60000, FETCH_TIMEOUT=12000;
 const cache=new Map(), pending=new Map();
-const HOT=['WORLD','IN','BR','IE','IL','GB','US'];
+const HOT=['GB','WORLD','IE','FR','DE','US','IN','BR','IL','CA','AU','JP','ZA','NG','SG','AE','ES','IT','NL','SE','CH','PL','KR','MX','AR','KE'];
+let hotCursor=0;const HOT_PER_MINUTE=8;
 const TOPICS={all:'',world:'world',business:'economy business',technology:'technology',science:'science',health:'health',sports:'sports'};
 const LOCALES={IN:['en-IN','IN','IN:en'],BR:['pt-BR','BR','BR:pt-419'],IE:['en-IE','IE','IE:en'],IL:['he','IL','IL:he'],GB:['en-GB','GB','GB:en'],US:['en-US','US','US:en'],FR:['fr','FR','FR:fr'],DE:['de','DE','DE:de'],ES:['es','ES','ES:es'],CA:['en-CA','CA','CA:en'],AU:['en-AU','AU','AU:en'],JP:['ja','JP','JP:ja']};
 let requestCounter=0, successCounter=0, lastBackground=null;
@@ -35,9 +36,10 @@ function parseRSS(xml,origin){
   }).filter(x=>x.title&&x.link);
 }
 function feedURL(country,topic,place=''){
-  const locale=LOCALES[country]||['en-US','US','US:en'];
+  const locale=LOCALES[country]||['en-GB',country==='WORLD'?'GB':country,(country==='WORLD'?'GB':country)+':en'];
   const params=new URLSearchParams({hl:locale[0],gl:locale[1],ceid:locale[2]});
   if(country==='WORLD'&&topic==='all'&&!place) return 'https://news.google.com/rss?'+params;
+  if(country==='GB'&&topic==='all'&&!place) return 'https://news.google.com/rss?'+params;
   let countryName='';
   if(country!=='WORLD'){
     try{countryName=new Intl.DisplayNames(['en'],{type:'region'}).of(country)||country}catch{countryName=country}
@@ -88,14 +90,15 @@ function allowed(ip){
 const app=await readFile(path.join(ROOT,'public','index.html'));
 const script=await readFile(path.join(ROOT,'public','app.js'));
 const stylesheet=await readFile(path.join(ROOT,'public','style.css'));
-const fileMap={'/': [app,'text/html; charset=utf-8'], '/index.html':[app,'text/html; charset=utf-8'],
+const visuals=await readFile(path.join(ROOT,'public','visuals.js'));
+const fileMap={'/visuals.js':[visuals,'text/javascript; charset=utf-8'], '/': [app,'text/html; charset=utf-8'], '/index.html':[app,'text/html; charset=utf-8'],
 '/app.js':[script,'text/javascript; charset=utf-8'],'/style.css':[stylesheet,'text/css; charset=utf-8']};
 const server=http.createServer(async(req,res)=>{
  try{
   const url=new URL(req.url||'/', 'http://localhost');
   if(req.method!=='GET'){res.writeHead(405,headers());res.end();return}
   if(!allowed(req.socket.remoteAddress||'unknown'))return send(res,429,{error:'Rate limited'});
-  if(url.pathname==='/api/health')return send(res,200,{ok:true,time:new Date().toISOString(),requestCounter,successCounter,lastBackground,cacheEntries:cache.size,policy:'60-second in-memory cache; free hosting may pause when inactive'});
+  if(url.pathname==='/api/health')return send(res,200,{ok:true,time:new Date().toISOString(),requestCounter,successCounter,lastBackground,cacheEntries:cache.size,feedCountries:HOT.length,backgroundBatchSize:HOT_PER_MINUTE,visualPolicy:'Topic-specific symbolic editorial SVG illustrations; not AI-generated event photos',policy:'Rotating 60-second batch checks; 60-second cache per feed; no guarantee of complete worldwide coverage; free hosting may pause when inactive'});
   if(url.pathname==='/api/news'){
     const country=validateCountry(url.searchParams.get('country'));
     const topic=String(url.searchParams.get('topic')||'all');
@@ -114,7 +117,9 @@ const server=http.createServer(async(req,res)=>{
 server.listen(PORT,'0.0.0.0',()=>console.log('YourNews listening on '+PORT));
 async function warm(){
  lastBackground=new Date().toISOString();
- await Promise.allSettled(HOT.map(c=>query(c,'all')));
+ const next=Array.from({length:HOT_PER_MINUTE},(_,i)=>HOT[(hotCursor+i)%HOT.length]);
+ hotCursor=(hotCursor+HOT_PER_MINUTE)%HOT.length;
+ await Promise.allSettled(next.map(c=>query(c,'all')));
 }
 setTimeout(warm,1500);
 setInterval(warm,60000).unref();
