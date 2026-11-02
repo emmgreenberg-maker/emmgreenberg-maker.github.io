@@ -13,6 +13,25 @@ const HOT=['GB','WORLD','IE','FR','DE','US','IN','BR','IL','CA','AU','JP','ZA','
 let hotCursor=0;const HOT_PER_MINUTE=8;
 const TOPICS={all:'',world:'world',business:'economy business',technology:'technology',science:'science',health:'health',sports:'sports'};
 const LOCALES={IN:['en-IN','IN','IN:en'],BR:['pt-BR','BR','BR:pt-419'],IE:['en-IE','IE','IE:en'],IL:['he','IL','IL:he'],GB:['en-GB','GB','GB:en'],US:['en-US','US','US:en'],FR:['fr','FR','FR:fr'],DE:['de','DE','DE:de'],ES:['es','ES','ES:es'],CA:['en-CA','CA','CA:en'],AU:['en-AU','AU','AU:en'],JP:['ja','JP','JP:ja']};
+// Independent, source-attributed RSS feeds used when aggregators are slow or unavailable.
+// All headlines remain linked to their publishers; we do not copy article bodies or photos.
+const EDITORIAL_FEEDS={
+ GB:[
+  {name:'BBC News · UK',url:'https://feeds.bbci.co.uk/news/uk/rss.xml'},
+  {name:'The Guardian · UK',url:'https://www.theguardian.com/uk/rss'}
+ ],
+ WORLD:[
+  {name:'BBC News · World',url:'https://feeds.bbci.co.uk/news/world/rss.xml'},
+  {name:'The Guardian · World',url:'https://www.theguardian.com/world/rss'}
+ ]
+};
+const BBC_TOPICS={
+ business:'https://feeds.bbci.co.uk/news/business/rss.xml',
+ technology:'https://feeds.bbci.co.uk/news/technology/rss.xml',
+ science:'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml',
+ health:'https://feeds.bbci.co.uk/news/health/rss.xml',
+ sports:'https://feeds.bbci.co.uk/sport/rss.xml'
+};
 const LANGUAGE_LOCALES={en:['en-GB','GB','GB:en'],he:['he','IL','IL:he'],pt:['pt-BR','BR','BR:pt-419'],hi:['hi','IN','IN:hi'],ga:['en-IE','IE','IE:en'],ar:['ar','AE','AE:ar'],es:['es-ES','ES','ES:es'],fr:['fr','FR','FR:fr'],de:['de','DE','DE:de'],ru:['ru','RU','RU:ru'],zh:['zh-CN','CN','CN:zh-Hans'],ja:['ja','JP','JP:ja']};
 let requestCounter=0, successCounter=0, lastBackground=null;
 
@@ -43,7 +62,7 @@ function feedURL(country,topic,place='',language='en'){
   const native=LOCALES[country];
   const locale=(native&&native[0].split('-')[0]===language)?native:requested;
   const params=new URLSearchParams({hl:locale[0],gl:locale[1],ceid:locale[2]});
-  if(country==='WORLD'&&topic==='all'&&!place) return 'https://news.google.com/rss?'+params;
+  if(country==='WORLD'&&topic==='all'&&!place)return 'https://news.google.com/rss?'+params;
   if(country==='GB'&&topic==='all'&&!place&&language==='en')return 'https://news.google.com/rss?'+params;
   let countryName='';
   if(country!=='WORLD'){
@@ -53,40 +72,69 @@ function feedURL(country,topic,place='',language='en'){
   params.set('q',keywords);
   return 'https://news.google.com/rss/search?'+params;
 }
+function selectFeeds(country,topic,place,language){
+  const feeds=[{name:'Google News RSS',url:feedURL(country,topic,place,language)}];
+  // Publisher feeds are not geographical filters. Use them only when their coverage
+  // and language match the selected edition, never for a narrow location search.
+  if(!place && language==='en' && (country==='GB'||country==='WORLD')){
+    if(topic==='all'||topic==='world')feeds.push(...EDITORIAL_FEEDS[country]);
+    else if(BBC_TOPICS[topic])feeds.push({name:'BBC News · '+topic,url:BBC_TOPICS[topic]});
+  }
+  return feeds;
+}
+async function fetchFeed(feed,country){
+  const response=await fetch(feed.url,{
+    signal:AbortSignal.timeout(FETCH_TIMEOUT),
+    headers:{'user-agent':'Mozilla/5.0 (compatible; YourNews/1.0; editorial news index)','accept':'application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.1'}
+  });
+  if(!response.ok)throw Error(feed.name+': HTTP '+response.status);
+  const body=await response.text();
+  if(body.length>3000000)throw Error(feed.name+': oversized response');
+  const items=parseRSS(body,country).map(x=>({...x,source:x.source==='news.google.com'?feed.name:x.source||feed.name}));
+  if(!items.length)throw Error(feed.name+': no RSS items');
+  return items;
+}
 function pruneCache(){
   const now=Date.now();
   for(const [k,v] of cache)if(now-v.fetchedAt>15*60*1000)cache.delete(k);
   while(cache.size>MAX_CACHE_ENTRIES)cache.delete(cache.keys().next().value);
 }
+function dedupeItems(items){
+  const seen=new Set();
+  return items.filter(item=>{
+    const key=(item.title||'').toLocaleLowerCase().replace(/\s*[-|]\s*[^-|]+$/,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+    if(!key||seen.has(key)||!item.link)return false;
+    seen.add(key);return true;
+  }).sort((a,b)=>Date.parse(b.published||0)-Date.parse(a.published||0)).slice(0,MAX_ITEMS);
+}
 async function query(country,topic,place='',language='en'){
   const key=[country,topic,place.toLocaleLowerCase(),language].join('/'),previous=cache.get(key);
-  if(previous && Date.now()-previous.fetchedAt<TTL) return {...previous,fromCache:true};
+  if(previous&&Date.now()-previous.fetchedAt<TTL)return {...previous,fromCache:true};
   if(pending.has(key))return pending.get(key);
   const promise=(async()=>{
     requestCounter++;
-    try{
-      const signal=AbortSignal.timeout(FETCH_TIMEOUT);
-      const sourceURL=feedURL(country,topic,place,language);
-      const response=await fetch(sourceURL,{signal,headers:{'user-agent':'YourNews/0.3 (+source-attributed-headlines)','accept':'application/rss+xml,text/xml;q=0.9,*/*;q=0.1'}});
-      if(!response.ok)throw new Error('RSS upstream HTTP '+response.status);
-      const body=await response.text();
-      if(body.length>3000000)throw new Error('Feed too large');
-      let items=parseRSS(body,country);
-      if(!items.length)throw new Error('No stories returned by the feed');
-      items=[...new Map(items.map(x=>[x.link,x])).values()].slice(0,MAX_ITEMS);
+    const feeds=selectFeeds(country,topic,place,language);
+    const attempts=await Promise.allSettled(feeds.map(f=>fetchFeed(f,country)));
+    const successes=attempts.flatMap((x,i)=>x.status==='fulfilled'?[{name:feeds[i].name,items:x.value}]:[]);
+    const failures=attempts.flatMap((x,i)=>x.status==='rejected'?[feeds[i].name+': '+String(x.reason?.message||x.reason).slice(0,80)]:[]);
+    const items=dedupeItems(successes.flatMap(x=>x.items));
+    if(items.length){
       successCounter++;
-      const result={country,topic,language,items,fetchedAt:Date.now(),isLive:true,provider:'Google News RSS',sourceURL,fromCache:false,warning:null};
+      const result={country,topic,language,items,fetchedAt:Date.now(),isLive:true,
+        provider:successes.map(x=>x.name).join(' + '),fromCache:false,warning:null,
+        sources:successes.map(x=>({name:x.name,count:x.items.length})),
+        // Source failures remain in diagnostics rather than confusing readers
+        partialSourceFailures:failures.length};
       cache.delete(key);cache.set(key,result);
-      feedHealth.set(country,{ok:true,checkedAt:new Date().toISOString(),count:items.length});
-      pruneCache();
-      return result;
-    }catch(error){
-      const note=String(error?.message||error).slice(0,160);
-      feedHealth.set(country,{ok:false,checkedAt:new Date().toISOString(),error:note});
-      if(previous)return {...previous,isLive:false,fromCache:true,warning:'Showing last cached results; refresh failed: '+note};
-      return {country,topic,language,items:[],fetchedAt:null,isLive:false,provider:'Google News RSS',fromCache:false,warning:'Live feed unavailable: '+note};
-    }finally{pending.delete(key)}
-  })();
+      feedHealth.set(country,{ok:true,checkedAt:new Date().toISOString(),count:items.length,providers:result.provider,failedSources:failures});
+      pruneCache();return result;
+    }
+    const note=failures.join('; ').slice(0,240)||'No recent stories were available';
+    feedHealth.set(country,{ok:false,checkedAt:new Date().toISOString(),error:note});
+    if(previous)return {...previous,isLive:false,fromCache:true,warning:'Showing previously checked headlines; latest source check failed.'};
+    return {country,topic,language,items:[],fetchedAt:null,isLive:false,provider:null,fromCache:false,
+      warning:'Live sources temporarily unavailable. Please retry or choose another edition.'};
+  })().finally(()=>pending.delete(key));
   pending.set(key,promise);return promise;
 }
 function headers(type='application/json; charset=utf-8',maxAge='no-store'){
