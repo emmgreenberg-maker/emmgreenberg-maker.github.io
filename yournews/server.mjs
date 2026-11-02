@@ -7,10 +7,13 @@ const ROOT=path.dirname(fileURLToPath(import.meta.url));
 const PORT=Number(process.env.PORT||3000);
 const MAX_ITEMS=30, TTL=60000, FETCH_TIMEOUT=12000;
 const cache=new Map(), pending=new Map();
+const feedHealth=new Map();
+const MAX_CACHE_ENTRIES=240;
 const HOT=['GB','WORLD','IE','FR','DE','US','IN','BR','IL','CA','AU','JP','ZA','NG','SG','AE','ES','IT','NL','SE','CH','PL','KR','MX','AR','KE'];
 let hotCursor=0;const HOT_PER_MINUTE=8;
 const TOPICS={all:'',world:'world',business:'economy business',technology:'technology',science:'science',health:'health',sports:'sports'};
 const LOCALES={IN:['en-IN','IN','IN:en'],BR:['pt-BR','BR','BR:pt-419'],IE:['en-IE','IE','IE:en'],IL:['he','IL','IL:he'],GB:['en-GB','GB','GB:en'],US:['en-US','US','US:en'],FR:['fr','FR','FR:fr'],DE:['de','DE','DE:de'],ES:['es','ES','ES:es'],CA:['en-CA','CA','CA:en'],AU:['en-AU','AU','AU:en'],JP:['ja','JP','JP:ja']};
+const LANGUAGE_LOCALES={en:['en-GB','GB','GB:en'],he:['he','IL','IL:he'],pt:['pt-BR','BR','BR:pt-419'],hi:['hi','IN','IN:hi'],ga:['en-IE','IE','IE:en'],ar:['ar','AE','AE:ar'],es:['es-ES','ES','ES:es'],fr:['fr','FR','FR:fr'],de:['de','DE','DE:de'],ru:['ru','RU','RU:ru'],zh:['zh-CN','CN','CN:zh-Hans'],ja:['ja','JP','JP:ja']};
 let requestCounter=0, successCounter=0, lastBackground=null;
 
 function clean(str=''){
@@ -35,11 +38,13 @@ function parseRSS(xml,origin){
       country:origin,kind:'Sourced headline',imageType:'editorial-illustration'};
   }).filter(x=>x.title&&x.link);
 }
-function feedURL(country,topic,place=''){
-  const locale=LOCALES[country]||['en-GB',country==='WORLD'?'GB':country,(country==='WORLD'?'GB':country)+':en'];
+function feedURL(country,topic,place='',language='en'){
+  const requested=LANGUAGE_LOCALES[language]||LANGUAGE_LOCALES.en;
+  const native=LOCALES[country];
+  const locale=(native&&native[0].split('-')[0]===language)?native:requested;
   const params=new URLSearchParams({hl:locale[0],gl:locale[1],ceid:locale[2]});
   if(country==='WORLD'&&topic==='all'&&!place) return 'https://news.google.com/rss?'+params;
-  if(country==='GB'&&topic==='all'&&!place) return 'https://news.google.com/rss?'+params;
+  if(country==='GB'&&topic==='all'&&!place&&language==='en')return 'https://news.google.com/rss?'+params;
   let countryName='';
   if(country!=='WORLD'){
     try{countryName=new Intl.DisplayNames(['en'],{type:'region'}).of(country)||country}catch{countryName=country}
@@ -48,15 +53,21 @@ function feedURL(country,topic,place=''){
   params.set('q',keywords);
   return 'https://news.google.com/rss/search?'+params;
 }
-async function query(country,topic,place=''){
-  const key=country+'/'+topic+'/'+place, previous=cache.get(key);
+function pruneCache(){
+  const now=Date.now();
+  for(const [k,v] of cache)if(now-v.fetchedAt>15*60*1000)cache.delete(k);
+  while(cache.size>MAX_CACHE_ENTRIES)cache.delete(cache.keys().next().value);
+}
+async function query(country,topic,place='',language='en'){
+  const key=[country,topic,place.toLocaleLowerCase(),language].join('/'),previous=cache.get(key);
   if(previous && Date.now()-previous.fetchedAt<TTL) return {...previous,fromCache:true};
   if(pending.has(key))return pending.get(key);
   const promise=(async()=>{
     requestCounter++;
     try{
       const signal=AbortSignal.timeout(FETCH_TIMEOUT);
-      const response=await fetch(feedURL(country,topic,place),{signal,headers:{'user-agent':'YourNewsPreview/0.2 (+news-headlines; source-attributed)','accept':'application/rss+xml,text/xml;q=0.9,*/*;q=0.1'}});
+      const sourceURL=feedURL(country,topic,place,language);
+      const response=await fetch(sourceURL,{signal,headers:{'user-agent':'YourNews/0.3 (+source-attributed-headlines)','accept':'application/rss+xml,text/xml;q=0.9,*/*;q=0.1'}});
       if(!response.ok)throw new Error('RSS upstream HTTP '+response.status);
       const body=await response.text();
       if(body.length>3000000)throw new Error('Feed too large');
@@ -64,20 +75,23 @@ async function query(country,topic,place=''){
       if(!items.length)throw new Error('No stories returned by the feed');
       items=[...new Map(items.map(x=>[x.link,x])).values()].slice(0,MAX_ITEMS);
       successCounter++;
-      const result={country,topic,items,fetchedAt:Date.now(),isLive:true,provider:'Google News RSS',sourceURL:feedURL(country,topic,place),fromCache:false,warning:null};
-      cache.set(key,result);
+      const result={country,topic,language,items,fetchedAt:Date.now(),isLive:true,provider:'Google News RSS',sourceURL,fromCache:false,warning:null};
+      cache.delete(key);cache.set(key,result);
+      feedHealth.set(country,{ok:true,checkedAt:new Date().toISOString(),count:items.length});
+      pruneCache();
       return result;
     }catch(error){
       const note=String(error?.message||error).slice(0,160);
+      feedHealth.set(country,{ok:false,checkedAt:new Date().toISOString(),error:note});
       if(previous)return {...previous,isLive:false,fromCache:true,warning:'Showing last cached results; refresh failed: '+note};
-      return {country,topic,items:[],fetchedAt:null,isLive:false,provider:'Google News RSS',fromCache:false,warning:'Live feed unavailable: '+note};
+      return {country,topic,language,items:[],fetchedAt:null,isLive:false,provider:'Google News RSS',fromCache:false,warning:'Live feed unavailable: '+note};
     }finally{pending.delete(key)}
   })();
   pending.set(key,promise);return promise;
 }
 function headers(type='application/json; charset=utf-8',maxAge='no-store'){
   return {'content-type':type,'cache-control':maxAge,'x-content-type-options':'nosniff',
-  'referrer-policy':'strict-origin-when-cross-origin','x-frame-options':'DENY','permissions-policy':'camera=(), microphone=(), geolocation=()',
+  'referrer-policy':'no-referrer','x-frame-options':'DENY','permissions-policy':'camera=(), microphone=(), geolocation=(self)',
   'content-security-policy':"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'"};
 }
 function send(res,status,payload){res.writeHead(status,headers());res.end(JSON.stringify(payload))}
@@ -98,14 +112,16 @@ const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url||'/', 'http://localhost');
   if(req.method!=='GET'){res.writeHead(405,headers());res.end();return}
   if(!allowed(req.socket.remoteAddress||'unknown'))return send(res,429,{error:'Rate limited'});
-  if(url.pathname==='/api/health')return send(res,200,{ok:true,time:new Date().toISOString(),requestCounter,successCounter,lastBackground,cacheEntries:cache.size,feedCountries:HOT.length,backgroundBatchSize:HOT_PER_MINUTE,visualPolicy:'Topic-specific symbolic editorial SVG illustrations; not AI-generated event photos',policy:'Rotating 60-second batch checks; 60-second cache per feed; no guarantee of complete worldwide coverage; free hosting may pause when inactive'});
+  if(url.pathname==='/api/health')return send(res,200,{ok:true,time:new Date().toISOString(),requestCounter,successCounter,lastBackground,cacheEntries:cache.size,sourceChecks:Object.fromEntries([...feedHealth].slice(-30)),feedCountries:HOT.length,backgroundBatchSize:HOT_PER_MINUTE,visualPolicy:'Topic-specific symbolic editorial SVG illustrations; not AI-generated event photos',policy:'Rotating 60-second batch checks; 60-second cache per feed; no guarantee of complete worldwide coverage; free hosting may pause when inactive'});
   if(url.pathname==='/api/news'){
     const country=validateCountry(url.searchParams.get('country'));
     const topic=String(url.searchParams.get('topic')||'all');
     if(!country||!(topic in TOPICS))return send(res,400,{error:'Invalid country or topic'});
+    const language=String(url.searchParams.get('language')||'en').toLowerCase();
+    if(!Object.hasOwn(LANGUAGE_LOCALES,language))return send(res,400,{error:'Unsupported feed language'});
     const place=String(url.searchParams.get('place')||'').trim();
-    if(place.length>80||/[<>\\x00-\\x1f]/.test(place))return send(res,400,{error:'Invalid place'});
-    const result=await query(country,topic,place);
+    if(place.length>80||/[<>\u0000-\u001f]/.test(place))return send(res,400,{error:'Invalid place'});
+    const result=await query(country,topic,place,language);
     return send(res,200,{...result,serverTime:new Date().toISOString()});
   }
   if(fileMap[url.pathname]){
@@ -123,4 +139,4 @@ async function warm(){
 }
 setTimeout(warm,1500);
 setInterval(warm,60000).unref();
-setInterval(()=>{if(rate.size>500){rate.clear()}},600000).unref();
+setInterval(()=>{if(rate.size>500){rate.clear()}pruneCache()},600000).unref();
