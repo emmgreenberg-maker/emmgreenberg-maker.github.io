@@ -7,7 +7,7 @@ const dictionary={
  pt:{heroTitle:'Seu mundo.\nSuas notícias.',heroDesc:'Escolha país, idioma e assuntos. Leia manchetes de fontes identificadas.',country:'País / região',language:'Idioma da interface',topic:'Assunto',search:'Buscar manchetes',latest:'ÚLTIMAS NOTÍCIAS',refresh:'Atualizar',startReading:'Ler notícias →',from:'Notícias de',readOriginal:'Leia na fonte ↗',noNews:'Nenhuma notícia disponível para esta seleção.',failed:'Não foi possível carregar as notícias.'},
  hi:{heroTitle:'आपकी दुनिया।\nआपकी खबरें।',heroDesc:'देश, भाषा और विषय चुनें। विश्वसनीय स्रोतों से शीर्षक पढ़ें।',country:'देश / क्षेत्र',language:'भाषा',topic:'विषय',search:'समाचार खोजें',latest:'ताज़ा खबरें',refresh:'रिफ्रेश',startReading:'खबरें पढ़ें →',from:'समाचार',readOriginal:'मूल स्रोत पढ़ें ↗',noNews:'इस चयन के लिए अभी खबरें नहीं हैं।'},
  ga:{heroTitle:'Do dhomhan.\nDo nuacht.',heroDesc:'Roghnaigh tír, teanga agus ábhair. Léigh ceannlínte ó fhoinsí ainmnithe.',country:'Tír / réigiún',language:'Teanga',topic:'Ábhar',search:'Cuardaigh ceannlínte',latest:'AN NUACHT IS DÉANAÍ',refresh:'Athnuaigh',startReading:'Léigh an nuacht →',from:'Nuacht ó',readOriginal:'Léigh ag an bhfoinse ↗',noNews:'Níl nuacht ar fáil don rogha seo faoi láthair.'}};
-const state={country:localStorage.getItem('yn_country')||'WORLD',language:localStorage.getItem('yn_language')||'he',topic:localStorage.getItem('yn_topic')||'all',stories:[],notice:'',fetchedAt:null};
+const state={country:localStorage.getItem('yn_country')||'WORLD',language:localStorage.getItem('yn_language')||'he',topic:localStorage.getItem('yn_topic')||'all',place:localStorage.getItem('yn_place')||'',stories:[],notice:'',fetchedAt:null};
 function tr(key){return dictionary[state.language]?.[key]||dictionary.en[key]||key}
 function setLanguage(l){state.language=l;document.documentElement.lang=l;document.documentElement.dir=['he','ar'].includes(l)?'rtl':'ltr';localStorage.setItem('yn_language',l);document.querySelectorAll('[data-i18n]').forEach(el=>{const v=tr(el.dataset.i18n);el.textContent=v; if(el.dataset.i18n==='heroTitle')el.style.whiteSpace='pre-line'});$('search').placeholder=tr('searchPlaceholder');render();updateStatus(Boolean(state.stories.length))}
 function displayCountry(code){if(code==='WORLD')return state.language==='he'?'העולם':'World';try{return new Intl.DisplayNames([state.language,'en'],{type:'region'}).of(code)||code}catch{return code}}
@@ -41,12 +41,12 @@ function render(){const feed=$('newsgrid');feed.replaceChildren();const q=$('sea
 }
 let fetchSequence=0;
 async function loadNews(force=false){
- const seq=++fetchSequence;const key='yn_feed_'+state.country+'_'+state.topic;
+ const seq=++fetchSequence;const key='yn_feed_'+state.country+'_'+state.topic+'_'+state.place;
  if(!force){try{const saved=JSON.parse(sessionStorage.getItem(key)||'null');if(saved&&Date.now()-saved.fetchedAt<55000){state.stories=saved.items;state.fetchedAt=saved.fetchedAt;render();updateStatus(true);return}}catch{}}
  $('refresh').disabled=true;
  try{
  const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),18000);
- const res=await fetch('/api/news?country='+encodeURIComponent(state.country)+'&topic='+encodeURIComponent(state.topic),{signal:ctrl.signal,cache:'no-store'});
+ const res=await fetch('/api/news?country='+encodeURIComponent(state.country)+'&topic='+encodeURIComponent(state.topic)+'&place='+encodeURIComponent(state.place),{signal:ctrl.signal,cache:'no-store'});
  clearTimeout(timeout);if(!res.ok)throw new Error('HTTP '+res.status);
  const data=await res.json();if(seq!==fetchSequence)return;
  state.stories=Array.isArray(data.items)?data.items:[];state.fetchedAt=data.fetchedAt;
@@ -65,6 +65,8 @@ function setup(){
  $('language').addEventListener('change',e=>{setLanguage(e.target.value);populateSort();loadNews(true)});
  $('topic').addEventListener('change',e=>{state.topic=e.target.value;localStorage.setItem('yn_topic',state.topic);loadNews(true)});
  $('search').addEventListener('input',render);
+ $('place').value=state.place;
+ let placeDelay; $('place').addEventListener('input',e=>{clearTimeout(placeDelay);placeDelay=setTimeout(()=>{state.place=e.target.value.trim();localStorage.setItem('yn_place',state.place);loadNews(true)},600)});
  $('refresh').addEventListener('click',()=>loadNews(true));
  document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>setCountry(b.dataset.country)));
  $('preferences').onclick=()=>{$('localHistory').checked=localStorage.getItem('yn_track')==='yes';$('audience').value=localStorage.getItem('yn_audience')||'general';$('prefsDialog').showModal()};
