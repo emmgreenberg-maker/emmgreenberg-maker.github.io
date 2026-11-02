@@ -81,6 +81,7 @@ export function imageStatus(){
  };
 }
 export function imageMeta(story){
+ if(!ENABLED)return {imageType:'editorial-illustration',imageDisclosure:'Symbolic editorial illustration; not an event photograph'};
  const id=imageId(story);
  return {imageId:id,imageUrl:'/api/illustrations/'+id+'.webp',imageType:'ai-editorial-illustration',imageDisclosure:'AI-generated editorial illustration; not a photograph'};
 }
