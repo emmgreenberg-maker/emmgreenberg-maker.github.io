@@ -1,0 +1,59 @@
+{
+  "capUSD": 5,
+  "reservedUSD": 1,
+  "spentUSD": 0.3312,
+  "jobs": [
+    {
+      "id": "c2e702bf951110d73d420e4620ce8a8b33597187",
+      "title": "If hackers can take control of a supermarket freezer, how vulnerable is other tech?",
+      "reservedUSD": 1,
+      "status": "uncertain",
+      "startedAt": "2026-11-02T22:46:14.915Z",
+      "error": "Generation or persistence failed; reservation retained"
+    },
+    {
+      "id": "5310d7bde090dd3177dedbd12f580ce2c6503a49",
+      "title": "Fossilised red blood cells found in 115m-year-old dinosaur’s bone, say scientists",
+      "reservedUSD": 1,
+      "status": "completed",
+      "startedAt": "2026-11-02T22:50:15.670Z",
+      "completedAt": "2026-11-02T22:51:36.618Z",
+      "usage": {
+        "input_tokens": 191,
+        "input_tokens_details": {
+          "image_tokens": 0,
+          "text_tokens": 191
+        },
+        "output_tokens": 5488,
+        "output_tokens_details": {
+          "image_tokens": 5488,
+          "text_tokens": 0
+        },
+        "total_tokens": 5679
+      },
+      "costUSD": 0.1656
+    },
+    {
+      "id": "c2e702bf951110d73d420e4620ce8a8b33597187",
+      "title": "If hackers can take control of a supermarket freezer, how vulnerable is other tech?",
+      "reservedUSD": 1,
+      "status": "completed",
+      "startedAt": "2026-11-02T22:57:06.921Z",
+      "completedAt": "2026-11-02T22:58:26.921Z",
+      "usage": {
+        "input_tokens": 175,
+        "input_tokens_details": {
+          "image_tokens": 0,
+          "text_tokens": 175
+        },
+        "output_tokens": 5488,
+        "output_tokens_details": {
+          "image_tokens": 5488,
+          "text_tokens": 0
+        },
+        "total_tokens": 5663
+      },
+      "costUSD": 0.1656
+    }
+  ]
+}

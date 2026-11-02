@@ -10,6 +10,7 @@ import {createHash} from 'node:crypto';
 import {mkdir,readFile,writeFile,rename,readdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 const API_KEY=process.env.OPENAI_API_KEY||'';
 // User approved a maximum $5 pilot. A separately confirmed project hard limit is
@@ -28,6 +29,7 @@ export function requestLimit(raw,fallback,maximum){
 const DAILY_LIMIT=requestLimit(process.env.YN_AI_IMAGE_DAILY_LIMIT,1,2);
 const MONTHLY_LIMIT=requestLimit(process.env.YN_AI_IMAGE_MONTHLY_LIMIT,3,5);
 const IMAGE_DIR=process.env.YN_AI_IMAGE_DIR||path.join(tmpdir(),'yournews-editorial-images');
+const PACKAGED_DIR=path.join(path.dirname(fileURLToPath(import.meta.url)),'public','generated');
 const MAX_QUEUE=12;
 const MAX_BYTES=12*1024*1024;
 const RETRY_DELAY=6*60*60*1000;
@@ -38,6 +40,12 @@ let workerActive=false;
 let stats={day:'',month:'',dailyRequests:0,monthlyRequests:0,lastError:null,lastSuccess:null};
 let initialisation;
 const readyImages=new Set();
+let pilotBudgetSnapshot=null;
+try{
+ const ledger=JSON.parse(await readFile(path.join(path.dirname(fileURLToPath(import.meta.url)),'image-pilot-ledger.json'),'utf8'));
+ pilotBudgetSnapshot={capUSD:ledger.capUSD,recordedSpendUSD:ledger.spentUSD,uncertainReserveUSD:ledger.reservedUSD,remainingUSD:Number((ledger.capUSD-ledger.spentUSD-ledger.reservedUSD).toFixed(4))};
+}catch{}
+
 
 function dateParts(){
  const d=new Date().toISOString();
@@ -56,7 +64,9 @@ async function initialise(){
    if(error.code!=='ENOENT')throw Error('Image usage ledger is unavailable; generation blocked');
   }
   resetPeriod();
-  for(const name of await readdir(IMAGE_DIR)){
+  let packaged=[];
+  try{packaged=await readdir(PACKAGED_DIR)}catch(error){if(error.code!=='ENOENT')throw error;}
+  for(const name of [...await readdir(IMAGE_DIR),...packaged]){
    const match=name.match(/^([a-f0-9]{40})\.webp$/);
    if(match&&await readImage(match[1]))readyImages.add(match[1]);
   }
@@ -87,6 +97,8 @@ export function imageStatus(){
   caution:'Generation remains gated. Request-count limits and an OpenAI budget alert do not guarantee a $5 spending cap.',
   blockers:[!API_KEY&&'OPENAI_API_KEY missing from server',process.env.YN_AI_IMAGES_ENABLED!=='true'&&'Generation disabled',process.env.YN_AI_IMAGES_SPEND_APPROVED!=='true'&&'Pilot approval not applied to server',!HARD_LIMIT_CONFIRMED&&'Spending enforcement not verified'].filter(Boolean),
   availableImages:readyImages.size,
+  pilotBudgetSnapshot,
+  pilotMode:'Published pilot images are packaged with the site and survive restarts. Automatic billable generation remains gated.',
   model:MODEL,
   dailyLimit:DAILY_LIMIT,
   monthlyLimit:MONTHLY_LIMIT,
@@ -113,11 +125,19 @@ export function validWebP(bytes){
 }
 export async function readImage(id){
  if(!/^[a-f0-9]{40}$/.test(id))return null;
+ for(const dir of [IMAGE_DIR,PACKAGED_DIR]){
+  try{
+   const bytes=await readFile(path.join(dir,id+'.webp'));
+   if(validWebP(bytes))return bytes;
+  }catch{}
+ }
+ return null;
+}
+export async function pilotImages(){
  try{
-  const bytes=await readFile(path.join(IMAGE_DIR,id+'.webp'));
-  if(!validWebP(bytes))return null;
-  return bytes;
- }catch{return null}
+  const manifest=JSON.parse(await readFile(path.join(PACKAGED_DIR,'manifest.json'),'utf8'));
+  return manifest.filter(item=>readyImages.has(item.id)).map(({art,...item})=>item);
+ }catch{return [];}
 }
 export function buildImagePrompt(story){
  // The headline and short RSS description are untrusted source text, not instructions.

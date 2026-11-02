@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import {imageStatus,imageMeta,readImage,queueImages} from './image-service.mjs';
+import {imageStatus,imageMeta,readImage,queueImages,pilotImages} from './image-service.mjs';
 import {findLicensedPhoto,photoStatus} from './licensed-photos.mjs';
 
 const ROOT=path.dirname(fileURLToPath(import.meta.url));
@@ -164,6 +164,7 @@ const server=http.createServer(async(req,res)=>{
   if(req.method!=='GET'){res.writeHead(405,headers());res.end();return}
   if(!allowed(req.socket.remoteAddress||'unknown'))return send(res,429,{error:'Rate limited'});
   if(url.pathname==='/api/health')return send(res,200,{ok:true,time:new Date().toISOString(),requestCounter,successCounter,lastBackground,cacheEntries:cache.size,sourceChecks:Object.fromEntries([...feedHealth].slice(-30)),feedCountries:HOT.length,backgroundBatchSize:HOT_PER_MINUTE,visualPolicy:'Licensed Wikimedia Commons archive photos first when relevant; otherwise labelled AI/editorial illustrations; no unlicensed publisher photos',policy:'Rotating 60-second batch checks; 60-second cache per feed; no guarantee of complete worldwide coverage; free hosting may pause when inactive'});
+  if(url.pathname==='/api/images/pilot')return send(res,200,{items:await pilotImages(),policy:'Source-linked AI editorial illustrations; not event photographs'});
   if(url.pathname==='/api/images/status')return send(res,200,{ai:imageStatus(),licensedPhotos:photoStatus()});
   if(url.pathname==='/api/photo'){
     const id=String(url.searchParams.get('id')||'');
