@@ -2,6 +2,7 @@ import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
+import {imageStatus,imageMeta,readImage,queueImages} from './image-service.mjs';
 
 const ROOT=path.dirname(fileURLToPath(import.meta.url));
 const PORT=Number(process.env.PORT||3000);
@@ -127,7 +128,7 @@ async function query(country,topic,place='',language='en'){
         partialSourceFailures:failures.length};
       cache.delete(key);cache.set(key,result);
       feedHealth.set(country,{ok:true,checkedAt:new Date().toISOString(),count:items.length,providers:result.provider,failedSources:failures});
-      pruneCache();return result;
+      pruneCache();queueImages(country,items);return result;
     }
     const note=failures.join('; ').slice(0,240)||'No recent stories were available';
     feedHealth.set(country,{ok:false,checkedAt:new Date().toISOString(),error:note});
@@ -161,6 +162,13 @@ const server=http.createServer(async(req,res)=>{
   if(req.method!=='GET'){res.writeHead(405,headers());res.end();return}
   if(!allowed(req.socket.remoteAddress||'unknown'))return send(res,429,{error:'Rate limited'});
   if(url.pathname==='/api/health')return send(res,200,{ok:true,time:new Date().toISOString(),requestCounter,successCounter,lastBackground,cacheEntries:cache.size,sourceChecks:Object.fromEntries([...feedHealth].slice(-30)),feedCountries:HOT.length,backgroundBatchSize:HOT_PER_MINUTE,visualPolicy:'Topic-specific symbolic editorial SVG illustrations; not AI-generated event photos',policy:'Rotating 60-second batch checks; 60-second cache per feed; no guarantee of complete worldwide coverage; free hosting may pause when inactive'});
+  if(url.pathname==='/api/images/status')return send(res,200,imageStatus());
+  if(url.pathname.startsWith('/api/illustrations/')){
+    const match=url.pathname.match(/^\/api\/illustrations\/([a-f0-9]{40})\.webp$/);
+    if(!match)return send(res,404,{error:'Not found'});
+    const bytes=await readImage(match[1]);if(!bytes)return send(res,404,{error:'Illustration not generated'});
+    res.writeHead(200,headers('image/webp','public, max-age=86400'));res.end(bytes);return;
+  }
   if(url.pathname==='/api/news'){
     const country=validateCountry(url.searchParams.get('country'));
     const topic=String(url.searchParams.get('topic')||'all');
@@ -170,7 +178,7 @@ const server=http.createServer(async(req,res)=>{
     const place=String(url.searchParams.get('place')||'').trim();
     if(place.length>80||/[<>\u0000-\u001f]/.test(place))return send(res,400,{error:'Invalid place'});
     const result=await query(country,topic,place,language);
-    return send(res,200,{...result,serverTime:new Date().toISOString()});
+    return send(res,200,{...result,items:result.items.map(item=>({...item,...imageMeta(item)})),serverTime:new Date().toISOString()});
   }
   if(fileMap[url.pathname]){
     const [data,type]=fileMap[url.pathname];res.writeHead(200,headers(type,'public, max-age=120'));res.end(data);return;
