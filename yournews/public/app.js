@@ -31,6 +31,11 @@ function makeStory(story,edition=state.country){
   const image=document.createElement('img');image.src=visual.url;image.alt=visual.alt;image.loading='lazy';image.decoding='async';image.width=800;image.height=450;
   const figcaption=document.createElement('figcaption');figcaption.textContent='Editorial illustration · Not a photograph of this event';
   figure.append(image,figcaption);card.append(figure);
+  // Replace the contextual vector with a source-grounded AI illustration only if generated.
+  if(story.imageId&&story.imageUrl){
+   const ai=new Image();ai.onload=()=>{image.src=ai.src;image.alt='AI-generated editorial illustration of the reported subject; not a documentary photograph';figcaption.textContent='AI-generated editorial illustration · Not a photograph of this event';};
+   ai.onerror=()=>{};ai.src=story.imageUrl;
+  }
  }
  const body=document.createElement('div');body.className='newsbody';
  const meta=document.createElement('div');meta.className='meta';
