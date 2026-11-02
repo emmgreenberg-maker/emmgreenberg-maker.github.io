@@ -30,6 +30,10 @@ function makeStory(story,edition=state.country){
   const figure=document.createElement('figure');figure.className='newsvisual';
   const image=document.createElement('img');image.src=visual.url;image.alt=visual.alt;image.loading='lazy';image.decoding='async';image.width=800;image.height=450;
   const figcaption=document.createElement('figcaption');figcaption.textContent='Editorial illustration · Not a photograph of this event';
+  let licensedReady=false;
+  const editorialCaption=state.language==='he'?'איור מערכתי · אינו צילום מהאירוע':'Editorial illustration · Not a photograph of this event';
+  figcaption.textContent=editorialCaption;
+  image.addEventListener('error',()=>{image.src=visual.url;image.alt=visual.alt;figcaption.textContent=editorialCaption;figure.querySelector('.photo-credit')?.remove();},{once:true});
   figure.append(image,figcaption);card.append(figure);
   // Licensed archive photos take precedence when metadata supports reuse and relevance.
   if(story.id){
@@ -38,7 +42,8 @@ function makeStory(story,edition=state.country){
     if(!p||!/^https:\/\/upload\.wikimedia\.org\//.test(p.url))return;
     const licensed=new Image();licensed.referrerPolicy='no-referrer';
     licensed.onload=()=>{
-      image.src=p.url;image.alt=p.alt;figcaption.textContent=p.caption;
+      licensedReady=true;image.src=p.url;image.alt=p.alt;figcaption.textContent=state.language==='he'?'תצלום ארכיון להמחשה · לא אומת כתיעוד האירוע':p.caption;
+      figure.querySelector('.photo-credit')?.remove();
       const credit=document.createElement('a');credit.href=p.sourceURL;credit.target='_blank';credit.rel='noopener noreferrer';credit.className='photo-credit';credit.textContent=p.attribution;
       figure.append(credit);
     };
@@ -47,7 +52,7 @@ function makeStory(story,edition=state.country){
   }
   // Replace the contextual vector with a source-grounded AI illustration only if generated.
   if(story.imageId&&story.imageUrl){
-   const ai=new Image();ai.onload=()=>{image.src=ai.src;image.alt='AI-generated editorial illustration of the reported subject; not a documentary photograph';figcaption.textContent='AI-generated editorial illustration · Not a photograph of this event';};
+   const ai=new Image();ai.onload=()=>{if(licensedReady)return;image.src=ai.src;image.alt=state.language==='he'?'איור AI בנושא הידיעה, אינו צילום תיעודי':'AI-generated editorial illustration of the reported subject; not a documentary photograph';figcaption.textContent=state.language==='he'?'איור שנוצר ב־AI · אינו צילום מהאירוע':'AI-generated editorial illustration · Not a photograph of this event';};
    ai.onerror=()=>{};ai.src=story.imageUrl;
   }
  }

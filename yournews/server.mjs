@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
@@ -53,7 +54,7 @@ function parseRSS(xml,origin){
     const source=clean(tag(row,'source'))||new URL(link||'https://news.google.com').hostname;
     const dateRaw=tag(row,'pubDate');
     const time=Date.parse(clean(dateRaw));
-    return {id:Buffer.from(link||title).toString('base64url').slice(0,55),
+    return {id:createHash('sha256').update(link||title).digest('hex').slice(0,40),
       title,source,link: /^https:\/\//i.test(link)?link:'',
       published:Number.isFinite(time)?new Date(time).toISOString():null,
       country:origin,kind:'Sourced headline',imageType:'editorial-illustration'};
