@@ -34,27 +34,27 @@ function parseRSS(xml,origin){
       country:origin,kind:'Sourced headline',imageType:'editorial-illustration'};
   }).filter(x=>x.title&&x.link);
 }
-function feedURL(country,topic){
+function feedURL(country,topic,place=''){
   const locale=LOCALES[country]||['en-US','US','US:en'];
   const params=new URLSearchParams({hl:locale[0],gl:locale[1],ceid:locale[2]});
-  if(country==='WORLD'&&topic==='all') return 'https://news.google.com/rss?'+params;
+  if(country==='WORLD'&&topic==='all'&&!place) return 'https://news.google.com/rss?'+params;
   let countryName='';
   if(country!=='WORLD'){
     try{countryName=new Intl.DisplayNames(['en'],{type:'region'}).of(country)||country}catch{countryName=country}
   }
-  const keywords=[countryName,TOPICS[topic]||'', 'when:2d'].filter(Boolean).join(' ');
+  const keywords=[place,countryName,TOPICS[topic]||'', 'when:2d'].filter(Boolean).join(' ');
   params.set('q',keywords);
   return 'https://news.google.com/rss/search?'+params;
 }
-async function query(country,topic){
-  const key=country+'/'+topic, previous=cache.get(key);
+async function query(country,topic,place=''){
+  const key=country+'/'+topic+'/'+place, previous=cache.get(key);
   if(previous && Date.now()-previous.fetchedAt<TTL) return {...previous,fromCache:true};
   if(pending.has(key))return pending.get(key);
   const promise=(async()=>{
     requestCounter++;
     try{
       const signal=AbortSignal.timeout(FETCH_TIMEOUT);
-      const response=await fetch(feedURL(country,topic),{signal,headers:{'user-agent':'YourNewsPreview/0.2 (+news-headlines; source-attributed)','accept':'application/rss+xml,text/xml;q=0.9,*/*;q=0.1'}});
+      const response=await fetch(feedURL(country,topic,place),{signal,headers:{'user-agent':'YourNewsPreview/0.2 (+news-headlines; source-attributed)','accept':'application/rss+xml,text/xml;q=0.9,*/*;q=0.1'}});
       if(!response.ok)throw new Error('RSS upstream HTTP '+response.status);
       const body=await response.text();
       if(body.length>3000000)throw new Error('Feed too large');
@@ -62,7 +62,7 @@ async function query(country,topic){
       if(!items.length)throw new Error('No stories returned by the feed');
       items=[...new Map(items.map(x=>[x.link,x])).values()].slice(0,MAX_ITEMS);
       successCounter++;
-      const result={country,topic,items,fetchedAt:Date.now(),isLive:true,provider:'Google News RSS',sourceURL:feedURL(country,topic),fromCache:false,warning:null};
+      const result={country,topic,items,fetchedAt:Date.now(),isLive:true,provider:'Google News RSS',sourceURL:feedURL(country,topic,place),fromCache:false,warning:null};
       cache.set(key,result);
       return result;
     }catch(error){
@@ -100,7 +100,9 @@ const server=http.createServer(async(req,res)=>{
     const country=validateCountry(url.searchParams.get('country'));
     const topic=String(url.searchParams.get('topic')||'all');
     if(!country||!(topic in TOPICS))return send(res,400,{error:'Invalid country or topic'});
-    const result=await query(country,topic);
+    const place=String(url.searchParams.get('place')||'').trim();
+    if(place.length>80||/[<>\\x00-\\x1f]/.test(place))return send(res,400,{error:'Invalid place'});
+    const result=await query(country,topic,place);
     return send(res,200,{...result,serverTime:new Date().toISOString()});
   }
   if(fileMap[url.pathname]){
